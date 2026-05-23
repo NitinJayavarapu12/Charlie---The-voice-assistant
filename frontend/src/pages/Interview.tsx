@@ -18,7 +18,7 @@ import VapiSDK from '@vapi-ai/web'
 const Vapi = (VapiSDK as any).default ?? VapiSDK
 import { api } from '../lib/api'
 
-type Stage = 'loading' | 'register' | 'ready' | 'connecting' | 'live' | 'done' | 'error'
+type Stage = 'loading' | 'register' | 'ready' | 'connecting' | 'live' | 'done' | 'error' | 'blocked'
 
 const VAPI_PUBLIC_KEY = import.meta.env.VITE_VAPI_PUBLIC_KEY
 const VAPI_ASSISTANT_ID = import.meta.env.VITE_VAPI_ASSISTANT_ID
@@ -43,9 +43,17 @@ export default function Interview() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.candidate_name.trim() || !form.candidate_email.trim()) return
-    const interview = await api.startInterview(slug!, form)
-    setInterviewId(interview.id)
-    setStage('ready')
+    try {
+      const interview = await api.startInterview(slug!, form)
+      setInterviewId(interview.id)
+      setStage('ready')
+    } catch (err: any) {
+      if (err?.status === 409 || err?.message?.includes('already_completed')) {
+        setStage('blocked')
+      } else {
+        setStage('error')
+      }
+    }
   }
 
   const startCall = async () => {
@@ -109,6 +117,19 @@ export default function Interview() {
     )
   }
 
+  if (stage === 'blocked') {
+    return (
+      <div className="interview-page">
+        <div className="interview-card done-card">
+          <div className="done-icon">✓</div>
+          <h2>Already completed</h2>
+          <p>You've already completed this interview. Each candidate can only attempt it once.</p>
+          <p className="done-sub">You can close this tab.</p>
+        </div>
+      </div>
+    )
+  }
+
   if (stage === 'done') {
     return (
       <div className="interview-page">
@@ -124,19 +145,19 @@ export default function Interview() {
 
   return (
     <div className="interview-page">
-      <button className="btn-theme interview-theme-btn" onClick={toggle} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
-        {theme === 'dark'
-          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        }
-      </button>
       <div className="interview-card">
         <div className="company-header">
           <div className="company-avatar">{role?.companies?.name?.[0] || 'C'}</div>
-          <div>
+          <div style={{ flex: 1 }}>
             <h3>{role?.companies?.name}</h3>
             <p>{role?.title}</p>
           </div>
+          <button className="btn-theme" onClick={toggle} title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+            {theme === 'dark'
+              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            }
+          </button>
         </div>
 
         {stage === 'register' && (

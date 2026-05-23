@@ -25,8 +25,22 @@ async def start_interview(slug: str, body: CandidateRegister):
     role = supabase.table("roles").select("id").eq("slug", slug).limit(1).execute()
     if not role.data:
         raise HTTPException(status_code=404, detail="Interview not found")
+    role_id = role.data[0]["id"]
+
+    existing = (
+        supabase.table("interviews")
+        .select("id")
+        .eq("role_id", role_id)
+        .eq("candidate_email", body.candidate_email)
+        .in_("status", ["completed", "analyzed"])
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        raise HTTPException(status_code=409, detail="already_completed")
+
     result = supabase.table("interviews").insert({
-        "role_id": role.data[0]["id"],
+        "role_id": role_id,
         "candidate_name": body.candidate_name,
         "candidate_email": body.candidate_email,
         "status": "in_progress",

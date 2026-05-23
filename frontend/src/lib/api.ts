@@ -44,7 +44,15 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
-    }).then(r => r.json()),
+    }).then(async r => {
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({ detail: r.statusText }))
+        const err: any = new Error(body.detail || 'Request failed')
+        err.status = r.status
+        throw err
+      }
+      return r.json()
+    }),
   updateInterviewSession: (interviewId: string, vapiCallId?: string) =>
     fetch(`${API_URL}/interview/session/${interviewId}${vapiCallId ? `?vapi_call_id=${vapiCallId}` : ''}`, {
       method: 'PATCH',
