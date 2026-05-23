@@ -18,7 +18,7 @@ export default function Interview() {
   const [interviewId, setInterviewId] = useState<string | null>(null)
   const [isMuted, setIsMuted] = useState(false)
   const [volume, setVolume] = useState(0)
-  const vapiRef = useRef<Vapi | null>(null)
+  const vapiRef = useRef<typeof Vapi | null>(null)
 
   useEffect(() => {
     api.getInterviewBySlug(slug!)

@@ -1,3 +1,4 @@
+import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/Login'
@@ -7,7 +8,7 @@ import NewRole from './pages/NewRole'
 import Interview from './pages/Interview'
 import Report from './pages/Report'
 
-function ProtectedRoute({ children }: { children: JSX.Element }) {
+function ProtectedRoute({ children }: { children: React.ReactElement }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>
   if (!user) return <Navigate to="/login" replace />
