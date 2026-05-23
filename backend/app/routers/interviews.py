@@ -32,7 +32,7 @@ async def start_interview(slug: str, body: CandidateRegister):
         .select("id")
         .eq("role_id", role_id)
         .eq("candidate_email", body.candidate_email)
-        .in_("status", ["completed", "analyzed"])
+        .in_("status", ["in_progress", "completed", "analyzing", "analyzed"])
         .limit(1)
         .execute()
     )
