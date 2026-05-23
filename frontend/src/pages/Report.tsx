@@ -82,6 +82,40 @@ export default function Report() {
               <p>{report.behavioral_insights}</p>
             </section>
 
+            {report.skill_scores && Object.keys(report.skill_scores).length > 0 && (
+              <section className="report-section">
+                <h2>Skill scores</h2>
+                <div className="skill-scores">
+                  {Object.entries(report.skill_scores).map(([skill, score]: [string, any]) => (
+                    <div key={skill} className="skill-row">
+                      <span className="skill-name">{skill}</span>
+                      <div className="skill-bar">
+                        {[1, 2, 3, 4, 5].map(n => (
+                          <div key={n} className={`skill-pip ${n <= score ? 'filled' : ''}`} />
+                        ))}
+                      </div>
+                      <span className="skill-score-label">{score}/5</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {(report.questions_and_answers || []).length > 0 && (
+              <section className="report-section">
+                <h2>Interview breakdown</h2>
+                <div className="qa-list">
+                  {report.questions_and_answers.map((qa: any, i: number) => (
+                    <div key={i} className="qa-item">
+                      <div className="qa-question">{qa.question}</div>
+                      <div className="qa-answer">{qa.answer_summary}</div>
+                      <div className="qa-score">{qa.score}/5</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {transcript && (
               <section className="report-section">
                 <button

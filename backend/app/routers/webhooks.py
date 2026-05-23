@@ -10,7 +10,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 
 def build_analysis_prompt(transcript: str, role_title: str, evaluation_focus: list, tone: str) -> str:
-    focus_str = ", ".join(evaluation_focus)
+    focus_str = ", ".join(evaluation_focus) if evaluation_focus else "general skills"
     return f"""You are an expert hiring analyst. Analyze this interview transcript for a "{role_title}" role.
 
 The interviewer used a "{tone}" tone and evaluated: {focus_str}.
@@ -24,9 +24,17 @@ Return a JSON object with exactly these fields:
   "strengths": ["strength 1", "strength 2", "strength 3"],
   "weaknesses": ["weakness 1", "weakness 2"],
   "behavioral_insights": "paragraph analyzing communication style, seriousness, and professionalism",
-  "recommendation": "Strong candidate" | "Potential candidate" | "Needs review" | "Not recommended"
+  "recommendation": "Strong candidate" | "Potential candidate" | "Needs review" | "Not recommended",
+  "skill_scores": {{
+    "Skill Name": 4
+  }},
+  "questions_and_answers": [
+    {{"question": "Question the interviewer asked", "answer_summary": "Brief summary of candidate's response", "score": 4}}
+  ]
 }}
 
+For skill_scores: score each of these skills 1-5 based on the transcript: {focus_str}. Use the exact skill names listed.
+For questions_and_answers: list every question the AI interviewer asked with a 1-sentence answer summary and a score 1-5.
 Return only valid JSON, no markdown.
 """
 
@@ -38,7 +46,7 @@ async def vapi_webhook(request: Request):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    message = payload.get("message", {})
+    message = payload.get("message", payload)
     event_type = message.get("type")
 
     if event_type != "end-of-call-report":
@@ -46,24 +54,34 @@ async def vapi_webhook(request: Request):
 
     call = message.get("call", {})
     vapi_call_id = call.get("id")
-    transcript = message.get("transcript", "")
+    metadata = call.get("metadata", {})
+    interview_id_from_metadata = metadata.get("interview_id") if metadata else None
+
     artifact = message.get("artifact", {})
-    transcript = artifact.get("transcript", transcript)
+    transcript = artifact.get("transcript") or message.get("transcript", "")
 
-    if not vapi_call_id:
-        return {"ok": True}
-
-    # Find the interview by vapi_call_id
-    interview_result = (
-        supabase.table("interviews")
-        .select("*, roles(title, evaluation_focus, tone)")
-        .eq("vapi_call_id", vapi_call_id)
-        .limit(1)
-        .execute()
-    )
+    # Look up interview — prefer metadata interview_id to avoid race condition
+    if interview_id_from_metadata:
+        interview_result = (
+            supabase.table("interviews")
+            .select("*, roles(title, evaluation_focus, tone)")
+            .eq("id", interview_id_from_metadata)
+            .limit(1)
+            .execute()
+        )
+    elif vapi_call_id:
+        interview_result = (
+            supabase.table("interviews")
+            .select("*, roles(title, evaluation_focus, tone)")
+            .eq("vapi_call_id", vapi_call_id)
+            .limit(1)
+            .execute()
+        )
+    else:
+        return {"ok": True, "message": "No interview identifier found"}
 
     if not interview_result.data:
-        return {"ok": True, "message": "Interview not found for this call_id"}
+        return {"ok": True, "message": "Interview not found"}
 
     interview = interview_result.data[0]
     interview_id = interview["id"]
@@ -75,7 +93,7 @@ async def vapi_webhook(request: Request):
         "content": transcript,
     }).execute()
 
-    # Update interview status
+    # Update interview status to analyzing
     supabase.table("interviews").update({"status": "analyzing"}).eq("id", interview_id).execute()
 
     # Generate report with Gemini
@@ -89,7 +107,6 @@ async def vapi_webhook(request: Request):
         )
         response = model.generate_content(prompt)
         raw = response.text.strip()
-        # Strip markdown code fences if present
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -107,6 +124,8 @@ async def vapi_webhook(request: Request):
         "weaknesses": report_data.get("weaknesses", []),
         "behavioral_insights": report_data.get("behavioral_insights", ""),
         "recommendation": report_data.get("recommendation", "Needs review"),
+        "skill_scores": report_data.get("skill_scores", {}),
+        "questions_and_answers": report_data.get("questions_and_answers", []),
     }).execute()
 
     # Mark as analyzed

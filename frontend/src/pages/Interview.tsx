@@ -119,6 +119,7 @@ export default function Interview() {
         evaluation_focus: (role?.evaluation_focus || []).join(', '),
         jd_context: jdContext,
       },
+      metadata: { interview_id: interviewId },
       silenceTimeoutSeconds: 30,
     })
   }
