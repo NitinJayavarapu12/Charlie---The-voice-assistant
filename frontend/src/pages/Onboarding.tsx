@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 
@@ -7,6 +7,12 @@ export default function Onboarding() {
   const [form, setForm] = useState({ name: '', website: '', description: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    api.getMyCompany().then(company => {
+      if (company) navigate('/dashboard', { replace: true })
+    }).catch(() => {})
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -17,7 +23,11 @@ export default function Onboarding() {
       await api.createCompany(form)
       navigate('/dashboard')
     } catch (err: any) {
-      setError(err.message)
+      if (err.message === 'Company already exists') {
+        navigate('/dashboard')
+      } else {
+        setError(err.message)
+      }
     } finally {
       setLoading(false)
     }
