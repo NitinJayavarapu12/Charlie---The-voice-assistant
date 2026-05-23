@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+supabase
+google-generativeai
+python-dotenv
+python-slugify
+python-jose[cryptography]
+httpx
