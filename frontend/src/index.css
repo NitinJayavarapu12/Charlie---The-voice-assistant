@@ -229,6 +229,11 @@ button { font-family: var(--font); cursor: pointer; border: none; background: no
 }
 .btn-theme:hover { color: var(--text-primary); border-color: var(--border-light); }
 
+.interview-theme-btn {
+  position: fixed; top: 16px; right: 16px; z-index: 10;
+  padding: 7px; border-radius: var(--radius-sm);
+}
+
 .main-content { flex: 1; padding: 40px 48px; max-width: 900px; }
 .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; }
 
