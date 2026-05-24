@@ -95,9 +95,17 @@ export default function Interview() {
     const vapi = new Vapi(VAPI_PUBLIC_KEY)
     vapiRef.current = vapi
 
-    vapi.on('call-start', () => setStage('live'))
-    vapi.on('volume-level', (v: number) => setVolume(v))
     let vapiCallId: string | undefined
+
+    vapi.on('call-start', async () => {
+      setStage('live')
+      const callId = (vapi as any).call?.id || (vapi as any).callId
+      if (callId && interviewId) {
+        vapiCallId = callId
+        await api.saveCallId(interviewId, callId)
+      }
+    })
+    vapi.on('volume-level', (v: number) => setVolume(v))
 
     vapi.on('call-end', async () => {
       if (interviewId) {

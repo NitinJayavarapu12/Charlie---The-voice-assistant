@@ -53,6 +53,10 @@ export const api = {
       }
       return r.json()
     }),
+  saveCallId: (interviewId: string, vapiCallId: string) =>
+    fetch(`${API_URL}/interview/session/${interviewId}/call-id?vapi_call_id=${vapiCallId}`, {
+      method: 'PATCH',
+    }).then(r => r.json()),
   updateInterviewSession: (interviewId: string, vapiCallId?: string) =>
     fetch(`${API_URL}/interview/session/${interviewId}${vapiCallId ? `?vapi_call_id=${vapiCallId}` : ''}`, {
       method: 'PATCH',

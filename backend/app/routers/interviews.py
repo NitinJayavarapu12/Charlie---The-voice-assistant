@@ -48,6 +48,12 @@ async def start_interview(slug: str, body: CandidateRegister):
     return result.data[0]
 
 
+@router.patch("/interview/session/{interview_id}/call-id")
+async def save_call_id(interview_id: str, vapi_call_id: str):
+    supabase.table("interviews").update({"vapi_call_id": vapi_call_id}).eq("id", interview_id).execute()
+    return {"ok": True}
+
+
 @router.patch("/interview/session/{interview_id}")
 async def update_interview_status(interview_id: str, vapi_call_id: str = None):
     updates = {"status": "completed"}
