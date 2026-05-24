@@ -97,7 +97,7 @@ export default function Interview() {
 
     vapi.on('call-start', () => setStage('live'))
     vapi.on('volume-level', (v: number) => setVolume(v))
-    let vapiCallId: string | null = null
+    let vapiCallId: string | undefined
 
     vapi.on('call-end', async () => {
       if (interviewId) {
@@ -122,7 +122,7 @@ export default function Interview() {
       },
       silenceTimeoutSeconds: 30,
     })
-    vapiCallId = (call as any)?.id || null
+    vapiCallId = (call as any)?.id || undefined
   }
 
   const endCall = () => {
