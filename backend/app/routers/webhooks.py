@@ -49,6 +49,8 @@ async def vapi_webhook(request: Request):
     message = payload.get("message", payload)
     event_type = message.get("type")
 
+    print(f"[VAPI] event_type={event_type}")
+
     if event_type != "end-of-call-report":
         return {"ok": True}
 
@@ -59,6 +61,8 @@ async def vapi_webhook(request: Request):
 
     artifact = message.get("artifact", {})
     transcript = artifact.get("transcript") or message.get("transcript", "")
+
+    print(f"[VAPI] end-of-call-report: vapi_call_id={vapi_call_id}, interview_id_from_metadata={interview_id_from_metadata}, transcript_len={len(transcript)}")
 
     # Look up interview — prefer metadata interview_id to avoid race condition
     if interview_id_from_metadata:
@@ -81,11 +85,13 @@ async def vapi_webhook(request: Request):
         return {"ok": True, "message": "No interview identifier found"}
 
     if not interview_result.data:
+        print(f"[VAPI] Interview not found for vapi_call_id={vapi_call_id} / metadata_id={interview_id_from_metadata}")
         return {"ok": True, "message": "Interview not found"}
 
     interview = interview_result.data[0]
     interview_id = interview["id"]
     role = interview["roles"]
+    print(f"[VAPI] Found interview {interview_id}, generating report...")
 
     # Save transcript
     supabase.table("transcripts").upsert({
@@ -112,7 +118,9 @@ async def vapi_webhook(request: Request):
             if raw.startswith("json"):
                 raw = raw[4:]
         report_data = json.loads(raw)
+        print(f"[VAPI] Gemini report generated OK")
     except Exception as e:
+        print(f"[VAPI] Gemini error: {e}")
         supabase.table("interviews").update({"status": "completed"}).eq("id", interview_id).execute()
         return {"ok": False, "error": str(e)}
 
