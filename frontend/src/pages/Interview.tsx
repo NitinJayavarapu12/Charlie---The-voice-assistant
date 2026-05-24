@@ -97,10 +97,11 @@ export default function Interview() {
 
     vapi.on('call-start', () => setStage('live'))
     vapi.on('volume-level', (v: number) => setVolume(v))
+    let vapiCallId: string | null = null
+
     vapi.on('call-end', async () => {
-      const callId = (vapi as any).callId || null
       if (interviewId) {
-        await api.updateInterviewSession(interviewId, callId)
+        await api.updateInterviewSession(interviewId, vapiCallId)
       }
       localStorage.setItem(`charlie_interview_done_${slug}`, form.candidate_email)
       setStage('done')
@@ -111,7 +112,7 @@ export default function Interview() {
       ? `Job description for this role:\n${role.description}\n\nUse the job description to identify key technical skills, tools, and domain areas. Open the interview with a technical question that probes one of these areas.`
       : `Open the interview with a technical question appropriate for a ${role?.title || 'software'} role.`
 
-    await vapi.start(VAPI_ASSISTANT_ID, {
+    const call = await vapi.start(VAPI_ASSISTANT_ID, {
       variableValues: {
         role_title: role?.title || '',
         company_name: role?.companies?.name || '',
@@ -119,9 +120,9 @@ export default function Interview() {
         evaluation_focus: (role?.evaluation_focus || []).join(', '),
         jd_context: jdContext,
       },
-      metadata: { interview_id: interviewId },
       silenceTimeoutSeconds: 30,
     })
+    vapiCallId = (call as any)?.id || null
   }
 
   const endCall = () => {
