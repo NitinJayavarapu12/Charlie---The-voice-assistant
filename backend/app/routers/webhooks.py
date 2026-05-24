@@ -104,7 +104,7 @@ async def vapi_webhook(request: Request):
 
     # Generate report with Gemini
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         prompt = build_analysis_prompt(
             transcript=transcript,
             role_title=role["title"],

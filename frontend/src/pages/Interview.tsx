@@ -128,6 +128,7 @@ export default function Interview() {
         evaluation_focus: (role?.evaluation_focus || []).join(', '),
         jd_context: jdContext,
       },
+      endCallFunctionEnabled: true,
       silenceTimeoutSeconds: 30,
     })
     vapiCallId = (call as any)?.id || undefined
